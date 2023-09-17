@@ -3,16 +3,17 @@ import { prisma } from "../lib/prisma";
 import { z } from "zod";
 import { createReadStream } from "node:fs";
 import { openai } from "../lib/openai";
+import { streamToResponse, OpenAIStream } from 'ai'
 
 export async function generateAiCompletionRoute(app: FastifyInstance) {
   app.post("/ai/complete", async (request, reply) => {
     const bodySchema = z.object({
       videoId: z.string().uuid(),
-      template: z.string(),
+      prompt: z.string(),
       temperature: z.number().min(0).max(1).default(0.5),
     });
 
-    const { videoId, template, temperature } = bodySchema.parse(request.body);
+    const { videoId, prompt, temperature } = bodySchema.parse(request.body);
 
     const video = await prisma.video.findUniqueOrThrow({
       where: { id: videoId },
@@ -24,7 +25,7 @@ export async function generateAiCompletionRoute(app: FastifyInstance) {
         .send({ error: "Video transcription not found." });
     }
 
-    const promptMessage = template.replace(
+    const promptMessage = prompt.replace(
       "{transcription}",
       video.transcription
     );
@@ -38,8 +39,15 @@ export async function generateAiCompletionRoute(app: FastifyInstance) {
         },
       ],
       temperature: temperature,
+      stream:true,
     });
 
-    return response;
+    const stream = OpenAIStream(response);
+    streamToResponse(stream, reply.raw, {
+      headers: {
+        'Access-Control-Allow-Origin': "*",
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, PATCH, DELETE',
+      }
+    })
   });
 }
