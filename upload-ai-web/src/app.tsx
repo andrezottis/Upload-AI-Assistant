@@ -24,6 +24,10 @@ export function App() {
     console.log(template);
   }
 
+  function handleClick () {
+    window.open("https://github.com/andrezottis", "_blank");
+  };
+
   const {
     input,
     setInput,
@@ -51,7 +55,7 @@ export function App() {
             Desenvolvido por André
           </span>
           <Separator orientation="vertical" className="h-6" />
-          <Button variant={"outline"}>
+          <Button onClick={handleClick} variant={"outline"}>
             <Github className="w-4 h-4 mr-2" />
             GitHub
           </Button>
